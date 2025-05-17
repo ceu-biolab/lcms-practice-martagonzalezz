@@ -1,6 +1,6 @@
 package lipid;
 
-public class Peak {
+public class Peak implements Comparable <Peak> {
 
     private final double mz;
     private final double intensity;
@@ -34,5 +34,12 @@ public class Peak {
         if (!(obj instanceof Peak)) return false;
         Peak other = (Peak) obj;
         return Double.compare(mz, other.mz) == 0;
+    }
+
+    //método compare to implement
+    // !!TODO This set should be sorted according to help the program to deisotope the signals plus detect the adduct
+    //We use this to sort the peaks from lowest to greatest mz
+    public int compareTo(Peak other) {
+        return Double.compare(this.mz, other.mz);
     }
 }
