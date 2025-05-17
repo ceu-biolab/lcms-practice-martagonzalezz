@@ -1,9 +1,9 @@
 package lipid;
 
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import adduct.Adduct;
+import adduct.AdductList;
+import adduct.MassTransformation;
+import java.util.*;
 
 /**
  * Class to represent the annotation over a lipid
@@ -103,6 +103,8 @@ public class Annotation {
      * @return The normalized score between 0 and 1 that consists on the final number divided into the times that the rule
      * has been applied.
      */
+
+
     public double getNormalizedScore() {
         return (double) this.score / this.totalScoresApplied;
     }
@@ -129,4 +131,73 @@ public class Annotation {
     }
 
     // !!TODO Detect the adduct with an algorithm or with drools, up to the user.
+    //Adduct--> product of a direct addition of 2 or more distinct molecules, resulting
+    //in a single reaction product containing all atoms of all components
+    //the adduct will be detected based on the grouped signals
+
+    public String detectAdduct() {
+        double mzTolerance = 0.2;
+
+        //we need at least 2 peaks
+        if (groupedSignals == null || groupedSignals.size() < 2) {
+            return "Unknown";
+        }
+        //choose the adduct list
+        Map<String, Double> adductMap = (getIonizationMode() == IoniationMode.POSITIVE)
+                ? AdductList.MAPMZPOSITIVEADDUCTS
+                : AdductList.MAPMZNEGATIVEADDUCTS;
+
+
+        //to pick the first element in the sorted set
+        double observedMz = groupedSignals.iterator().next().getMz();
+
+        System.out.println("detectAdduct: observedMz = " + observedMz + ", mode = " + getIonizationMode());
+
+        //loop over candidate adducts
+        for (String candidateAdduct : adductMap.keySet()) {
+            System.out.println("Testing candidate adduct: " + candidateAdduct);
+            try {
+                //Convert the observed m/z to a monoisotopic mass
+                double monoisotopicMass = MassTransformation
+                        .getMonoisotopicMassFromMZ(observedMz, candidateAdduct);
+                System.out.println("monoisotopicMass = " + monoisotopicMass);
+
+                //To check if the peak fits
+                double backMz = MassTransformation.getMZFromMonoisotopicMass(monoisotopicMass, candidateAdduct);
+
+                if (Math.abs(backMz - observedMz) > mzTolerance) {
+                    continue;
+                }
+                //Search for peaks with the same mass
+                for (Peak otherPeak : groupedSignals) {
+                    System.out.println("Comparing with otherPeak: " + otherPeak);
+                    if (Math.abs(otherPeak.getMz() - observedMz) <= mzTolerance) {
+                        //Is the same peak as the observed so we skip
+                        System.out.println("Skip: same as observedMz");
+                        continue;
+                    }
+                    //Loop over every possible adduct
+                    for (String secondAdduct : adductMap.keySet()) {
+                        //compute the expected mz
+                        double expectedMz = MassTransformation.getMZFromMonoisotopicMass(monoisotopicMass, secondAdduct);
+                        double diff = Math.abs(expectedMz - otherPeak.getMz());
+                        System.out.println("secondAdduct=" + secondAdduct + ", expectedMz=" + expectedMz + ", observed=" + otherPeak.getMz() + ", diff=" + diff);
+                        //we found a different peak whose mz fits the same M via a different adduct
+                        if (diff <= mzTolerance) {
+                            System.out.println("DETECTED adduct: " + candidateAdduct + " (via " + secondAdduct + ")");
+                            return candidateAdduct;
+                        }
+                    }
+                }
+
+            } catch (IllegalArgumentException e) {
+                //If error
+                System.out.println("Ignored candidateAdduct: " + candidateAdduct);
+            }
+        }
+
+        //If nothing matches
+        System.out.println("detectAdduct: No adducts detected");
+        return "Unknown";
+    }
 }

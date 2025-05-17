@@ -1,7 +1,10 @@
 
 package lipid;
-
 unit LipidScoreUnit;
+import lipid.LipidType;
+import lipid.Lipid;
+import lipid.Annotation;
+
 
 // TODO Include here rules and queries to fulfill the practice requirements
 
@@ -10,18 +13,461 @@ unit LipidScoreUnit;
 // !! TODO This rule does not include the lipid type, you shall add it.
 // !! TODO Rule that states that the same lipid type with the same number of double bonds and a higher number of carbons should have a higher RT
 // !! TODO
-rule "Score 1 for lipid pair with increasing RT and carbon count"
-when
-    $a1 : /annotations [$rt1 : rtMin, $carbonCount1 : lipid.getCarbonCount(), $doubleBondCount : lipid.getDoubleBondsCount()]
-    $a2 : /annotations [this!= $a1, lipid.getDoubleBondsCount() == $doubleBondCount,
-    rtMin > $rt1, lipid.getCarbonCount() > $carbonCount1]
-then
-    // in this case, the only change is the addition of the score, but the fact does not change so we do not break the principle of refractoriness
-    $a1.addScore(1);
-    $a2.addScore(1);
-    // !! TODO ONLY FOR DEBUGGING
-    System.out.println("Scored 1 for annotations: " + $a1 + " and " + $a2);
-end
+
+ rule "Score +1: if same lipid type, same double bonds, more carbons"
+ when
+     $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+         $doubleBonds1 : lipid.getDoubleBondsCount()]
+     $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == $type1, lipid.getDoubleBondsCount() == $doubleBonds1,
+         lipid.getCarbonCount() < $carbons1]
+ then
+     $a1.addScore(1);
+     $a2.addScore(1);
+     System.out.println("Rule fired (same lipid type, same double bonds, L1 more carbons): " +
+      "Scored 1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+// RT(L1) > RT (L2) if L1 Lipid Type == L2 LypidType; L1 Double Bonds < L2 Double
+  //bonds and L1 carbons == L2 carbons.
+ rule "Score +1: if same lipid type, less double bonds, same carbons"
+ when
+     $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+         $doubleBonds1 : lipid.getDoubleBondsCount()]
+     $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == $type1, lipid.getDoubleBondsCount() > $doubleBonds1,
+         lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(1);
+     $a2.addScore(1);
+     System.out.println("Rule fired (same lipid type, L1 less double bonds, same carbons): " +
+      "Scored 1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+// RT(L1) > RT (L2) if L1 Lipid Type != L2 LypidType; L1 Double Bonds == L2 Double
+  //bonds and L1 carbons == L2 carbons according to this pattern: -> PG < PE < PI < PA
+  //< PS << PC
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PG<PE"
+ when
+     $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+         $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PE]
+     $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+         lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(1);
+     $a2.addScore(1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PG<PE)" +
+      ": Scored 1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PG<PI"
+  when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+          $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PI]
+      $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+          lipid.getCarbonCount() == $carbons1]
+  then
+      $a1.addScore(1);
+      $a2.addScore(1);
+      System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PG<PI):" +
+       " Scored 1 for annotations: " + $a1 + " and " + $a2);
+  end
+  rule "Score +1: if different lipid type, same double bonds, same carbons and PG<PA"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PA]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PG<PA): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PG<PS"
+ when
+     $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+         $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+     $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+         lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(1);
+     $a2.addScore(1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PG<PS):" +
+      " Scored 1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PG<PC"
+  when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+          $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+      $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+          lipid.getCarbonCount() == $carbons1]
+  then
+      $a1.addScore(1);
+      $a2.addScore(1);
+      System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PG<PC): " +
+       "Scored 1 for annotations: " + $a1 + " and " + $a2);
+  end
+
+ //PG < PE < PI < PA
+   //  //< PS << PC
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PE<PI"
+   when
+       $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+           $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PI]
+       $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+           lipid.getCarbonCount() == $carbons1]
+   then
+       $a1.addScore(1);
+       $a2.addScore(1);
+       System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PE<PI):" +
+        " Scored 1 for annotations: " + $a1 + " and " + $a2);
+   end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PE<PA"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PA]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PE<PA): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PE<PS"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PE<PS): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PE<PC"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PE<PC): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PI<PA"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PA]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PI, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PI<PA): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PI<PS"
+     when
+         $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+             $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+         $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PI, lipid.getDoubleBondsCount() == $doubleBonds1,
+             lipid.getCarbonCount() == $carbons1]
+     then
+         $a1.addScore(1);
+         $a2.addScore(1);
+         System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PI<PS): " +
+          "Scored 1 for annotations: " + $a1 + " and " + $a2);
+     end
+
+ rule "Score +1: if different lipid type, same double bonds, same carbons and PI<PC"
+     when
+         $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+             $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+         $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PI, lipid.getDoubleBondsCount() == $doubleBonds1,
+             lipid.getCarbonCount() == $carbons1]
+     then
+         $a1.addScore(1);
+         $a2.addScore(1);
+         System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PI<PC): " +
+          "Scored 1 for annotations: " + $a1 + " and " + $a2);
+     end
+
+rule "Score +1: if different lipid type, same double bonds, same carbons and PA<PS"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PA, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PA<PS): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
 
 
+rule "Score +1: if different lipid type, same double bonds, same carbons and PA<PC"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PA, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PA<PC): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+rule "Score +1: if different lipid type, same double bonds, same carbons and PC<PS"
+    when
+        $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+            $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+        $a2 : /annotations[this != $a1, rtMin < $rt1, lipid.getLipidType() == LipidType.PC, lipid.getDoubleBondsCount() == $doubleBonds1,
+            lipid.getCarbonCount() == $carbons1]
+    then
+        $a1.addScore(1);
+        $a2.addScore(1);
+        System.out.println("Rule fired (different lipid type, same double bonds, same carbons and PC<PS): " +
+         "Scored 1 for annotations: " + $a1 + " and " + $a2);
+    end
+
+//RT(L1) < RT (L2) if L1 Lipid Type == L2 LypidType; L1 Double Bonds == L2 Double
+  //bonds and L1 carbons > L2 carbons
+ rule "Score -1: if same lipid type, same double bonds, more carbons"
+ when
+     $a1 : /annotations[$rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+         $doubleBonds1 : lipid.getDoubleBondsCount()]
+     $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == $type1, lipid.getDoubleBondsCount() == $doubleBonds1,
+         lipid.getCarbonCount() < $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (same lipid type, same double bonds, L1 more carbons): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+// RT(L1) < RT (L2) if L1 Lipid Type == L2 LypidType; L1 Double Bonds < L2 Double
+  //bonds and L1 carbons == L2 carbons.
+ rule "Score -1: if same lipid type, less double bonds, same carbons"
+ when
+     $a1 : /annotations[$rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+         $doubleBonds1 : lipid.getDoubleBondsCount()]
+     $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == $type1, lipid.getDoubleBondsCount() > $doubleBonds1,
+         lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (same lipid type, L1 less double bonds, same carbons): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+// RT(L1) < RT (L2) if L1 Lipid Type != L2 LypidType; L1 Double Bonds == L2 Double
+  //bonds and L1 carbons == L2 carbons according to this pattern: -> PG < PE < PI < PA
+  //< PS << PC.
+ rule "Score -1: if different lipid type, same double bonds, same carbons, PG<PE"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PE]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PG<PE): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+ rule "Score -1: if different lipid type, same double bonds, same carbons, PG<PI"
+  when
+       $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                  $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PI]
+       $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+                  lipid.getCarbonCount() == $carbons1]
+  then
+      $a1.addScore(-1);
+      $a2.addScore(-1);
+      System.out.println("Rule fired (if different lipid type, same double bonds, same carbons, PG<PI): " +
+       "Scored -1 for annotations: " + $a1 + " and " + $a2);
+  end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PG<PA"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PA]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PG<PA): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+ rule "Score -1: if different lipid type, same double bonds, same carbons, PG<PS"
+  when
+       $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                  $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+       $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+                  lipid.getCarbonCount() == $carbons1]
+  then
+      $a1.addScore(-1);
+      $a2.addScore(-1);
+      System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PG<PS): " +
+       "Scored -1 for annotations: " + $a1 + " and " + $a2);
+  end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PG<PC"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PG, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PG<PC): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+ //PG < PE < PI < PA
+    //  //< PS << PC.
+rule "Score -1: if different lipid type, same double bonds, same carbons, PE<PI"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PI]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PE<PI): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PE<PA"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PA]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PE<PA): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PE<PS"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PE<PS): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PE<PC"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PE, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PE<PC): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PI<PA"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PA]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PI, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PI<PA): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PI<PS"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PI, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PI<PS): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PI<PC"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PI, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PI<PC): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PA<PS"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PS]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PA, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PA<PS): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+
+rule "Score -1: if different lipid type, same double bonds, same carbons, PA<PC"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PA, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PA<PC): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
+rule "Score -1: if different lipid type, same double bonds, same carbons, PS<PC"
+ when
+      $a1 : /annotations[$lipid1: lipid, $rt1 : rtMin, $type1 : lipid.getLipidType(), $carbons1 : lipid.getCarbonCount(),
+                 $doubleBonds1 : lipid.getDoubleBondsCount(), $type1 == lipid.LipidType.PC]
+      $a2 : /annotations[this != $a1, rtMin > $rt1, lipid.getLipidType() == LipidType.PS, lipid.getDoubleBondsCount() == $doubleBonds1,
+                 lipid.getCarbonCount() == $carbons1]
+ then
+     $a1.addScore(-1);
+     $a2.addScore(-1);
+     System.out.println("Rule fired (different lipid type, same double bonds, same carbons, PS<PC): " +
+      "Scored -1 for annotations: " + $a1 + " and " + $a2);
+ end
 // !! TODO NEXT RULE: Negative evidence. If the RT follows the opposite order than the previous one, then the addScore should be -1.
